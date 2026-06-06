@@ -707,16 +707,33 @@ def process_command(db, line):
         cmd_update(db, line[7:].strip())
         return True
     if line.lower().startswith("export "):
-        try:
-            args = shlex.split(line)
-        except ValueError:
-            args = line.split()
-        if len(args) < 3:
-            print("用法: export SQL FILE [FORMAT]  (FORMAT: csv/json/sql)")
+        rest = line[7:].strip()
+        if not rest:
+            print("用法: export \"SQL语句\" 文件路径 [格式]")
+            print("  格式: csv (默认), json, sql")
+            print("  示例: export \"SELECT * FROM users\" out.csv csv")
             return True
-        sql = args[1]
-        fname = args[2]
-        fmt = args[3] if len(args) > 3 else "csv"
+        try:
+            args = shlex.split(rest)
+        except ValueError:
+            args = rest.split()
+        if len(args) < 2:
+            print("用法: export \"SQL语句\" 文件路径 [格式]")
+            print("  示例: export \"SELECT * FROM users\" out.csv csv")
+            return True
+        valid_formats = {"csv", "json", "sql"}
+        fmt = "csv"
+        if len(args) >= 3 and args[-1].lower() in valid_formats:
+            fmt = args[-1].lower()
+            fname = args[-2]
+            sql_parts = args[:-2]
+        else:
+            fname = args[-1]
+            sql_parts = args[:-1]
+        sql = " ".join(sql_parts)
+        if not sql:
+            print("错误: SQL 语句为空，请用引号包裹包含空格的 SQL")
+            return True
         cmd_export(db, sql, fname, fmt)
         return True
     if line.lower().startswith("backup "):
